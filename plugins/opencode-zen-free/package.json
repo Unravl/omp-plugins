@@ -1,0 +1,9 @@
+{
+  "name": "opencode-zen-free",
+  "version": "1.0.0",
+  "description": "Use OpenCode Zen's free models (*-free, big-pickle) from omp",
+  "homepage": "https://github.com/Unravl/omp-plugins",
+  "omp": {
+    "extensions": ["./index.ts", "./zen-judge.ts"]
+  }
+}

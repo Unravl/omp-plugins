@@ -80,13 +80,17 @@ async function requestBodyJson(input: string | URL | Request, init: RequestInit 
 }
 
 // OpenCode's free-tier gate also rejects (403 FreeTierError) any request that does not declare a `read`
-// tool whose parameter schema has at least one property (empty `properties` fails). Earlier gate revisions
-// also required `bash`. Main sessions carry both, but title generation (no tools), advisors
-// (advise/read/grep/glob), and read-only subagents do not, so the missing ones are declared as
-// never-callable placeholders shaped like opencode's own tools.
-const requiredToolNames = ["read", "bash"];
-const placeholderDescription = "Unavailable in this request. Never call this tool.";
-const placeholderParameter: Record<string, string> = { read: "filePath", bash: "command" };
+// tool whose parameter schema has at least one property (empty `properties` fails). Main sessions carry
+// one, but title generation (no tools), advisors, and some subagents do not, so they get a never-callable
+// placeholder shaped like opencode's own `read`. Earlier gate revisions also required `bash`; as of
+// 2026-10-15 it is not required, so none is injected.
+const placeholderRead = { name: "read", description: "Unavailable in this request. Never call this tool." };
+const placeholderReadSchema = {
+	type: "object",
+	properties: { filePath: { type: "string" } },
+	required: ["filePath"],
+	additionalProperties: false,
+};
 
 function declaredToolName(tool: unknown): string | undefined {
 	if (!isJsonObject(tool)) return undefined;
@@ -94,25 +98,21 @@ function declaredToolName(tool: unknown): string | undefined {
 	return isJsonObject(tool.function) && typeof tool.function.name === "string" ? tool.function.name : undefined;
 }
 
-function placeholderTool(pathname: string, name: string): JsonObject {
-	const parameter = placeholderParameter[name];
-	const schema = { type: "object", properties: { [parameter]: { type: "string" } }, required: [parameter], additionalProperties: false };
+function placeholderTool(pathname: string): JsonObject {
 	if (/\/chat\/completions\/?$/.test(pathname)) {
-		return { type: "function", function: { name, description: placeholderDescription, parameters: schema } };
+		return { type: "function", function: { ...placeholderRead, parameters: placeholderReadSchema } };
 	}
 	if (/\/messages\/?$/.test(pathname)) {
-		return { name, description: placeholderDescription, input_schema: schema };
+		return { ...placeholderRead, input_schema: placeholderReadSchema };
 	}
-	return { type: "function", name, description: placeholderDescription, parameters: schema };
+	return { type: "function", ...placeholderRead, parameters: placeholderReadSchema };
 }
 
-/** Returns the re-serialized body with the gate's required tools declared, or undefined when nothing is missing. */
+/** Returns the re-serialized body with a `read` tool declared, or undefined when one already is. */
 function withRequiredTools(pathname: string, body: JsonObject): string | undefined {
 	const tools = Array.isArray(body.tools) ? body.tools : [];
-	const declared = new Set(tools.map(declaredToolName));
-	const missing = requiredToolNames.filter(name => !declared.has(name));
-	if (missing.length === 0) return undefined;
-	return JSON.stringify({ ...body, tools: [...tools, ...missing.map(name => placeholderTool(pathname, name))] });
+	if (tools.some(tool => declaredToolName(tool) === "read")) return undefined;
+	return JSON.stringify({ ...body, tools: [...tools, placeholderTool(pathname)] });
 }
 
 /** Process-wide handler: every free Zen chat request passes the free-tier gate, whoever issued it. */

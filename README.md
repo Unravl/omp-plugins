@@ -72,7 +72,7 @@ The plugin wraps `fetch` and, for free Zen models only, makes each request look 
 | Session id shaped like opencode's: `ses_` + 12-hex inverted timestamp + 14 base62 chars | Generates one per omp session |
 | Both `x-opencode-session` and `x-opencode-session-id` headers | Sends both |
 | An `opencode/<version>` User-Agent | Sends `opencode/1.18.35` |
-| A `read` tool with at least one parameter | Adds placeholder `read`/`bash` tools to requests that lack them (title generation, advisors, read-only subagents) |
+| A `read` tool with at least one parameter | Adds a placeholder `read` tool to requests that lack one (title generation, advisors, some subagents) |
 
 Paid Zen models and OpenCode Go requests pass through untouched.
 

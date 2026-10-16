@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "opencode-zen-free",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Use OpenCode Zen's free models (*-free, big-pickle) from omp",
       "source": "./plugins/opencode-zen-free",
       "homepage": "https://github.com/Unravl/omp-plugins"
